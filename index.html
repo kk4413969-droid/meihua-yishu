@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>梅花易数 · 起卦</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:#14100c; color:#e8dcc8; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:22px 14px; user-select:none;
+  }
+  h1 { font-size:22px; font-weight:600; letter-spacing:5px; color:#d9b779; }
+  .sub { font-size:12px; color:#8a7a5f; margin:5px 0 16px; }
+  .progress { font-size:15px; color:#c9b998; margin-bottom:12px; letter-spacing:1px; }
+  .types { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:16px; }
+  .types button { background:#241d14; border:1px solid #3a2f22; color:#a89a7d; padding:6px 15px; border-radius:16px; font-size:13px; cursor:pointer; }
+  .types button.on { background:#d9b779; color:#2a1e0c; border-color:#d9b779; font-weight:600; }
+
+  /* 起卦中:本卦柱 + 动爻 */
+  .building { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:18px; }
+  .hex { display:flex; flex-direction:column; gap:6px; }
+  .yao { width:74px; height:12px; display:flex; gap:9px; align-items:center; }
+  .yao .bar { background:#d9b779; border-radius:2px; height:100%; }
+  .yao.yang .bar { width:100%; }
+  .yao.yin .bar { width:calc(50% - 4.5px); }
+  .yao.empty .bar { background:#322a1e; width:100%; }
+  .yao.moving .bar { background:#e8663a; box-shadow:0 0 8px #e8663a; }
+  .dong-build { font-size:13px; color:#8a7a5f; letter-spacing:2px; font-family:monospace; }
+
+  button.tap {
+    width:140px; height:140px; border-radius:50%; border:none;
+    background:radial-gradient(circle at 35% 30%,#e0c07f,#b8863a);
+    color:#2a1e0c; font-size:28px; font-weight:700; letter-spacing:3px;
+    box-shadow:0 8px 24px rgba(184,134,58,.35); cursor:pointer; transition:transform .08s;
+  }
+  button.tap:active { transform:scale(.93); }
+  button.tap:disabled { opacity:.35; box-shadow:none; }
+
+  /* 结果:三卦 */
+  .result { width:100%; max-width:420px; margin-top:8px; }
+  .dong-info { text-align:center; font-size:14px; color:#e8663a; margin-bottom:14px; letter-spacing:1px; }
+  .card {
+    border:1px solid #3a2f22; border-radius:14px; background:#1c160f;
+    padding:14px; margin-bottom:12px; display:flex; align-items:center; gap:16px;
+  }
+  .card .hex .yao { width:60px; height:10px; }
+  .card-info { flex:1; }
+  .role { font-size:12px; color:#8a7a5f; letter-spacing:1px; }
+  .gname { font-size:20px; font-weight:600; color:#d9b779; margin:3px 0; letter-spacing:1px; }
+  .tri { font-size:13px; color:#a89a7d; }
+  .card.ben { border-color:#5a4a30; }
+  .baihua { font-size:13px; color:#d9c9a2; margin-top:5px; line-height:1.55; }
+  .yi { font-size:11px; color:#8a7a5f; margin-top:3px; line-height:1.5; }
+
+  .jie { border:1px solid #4a3a24; border-radius:12px; background:#20180e; padding:12px 14px; margin-bottom:14px; }
+  .jie-title { font-size:13px; color:#d9b779; letter-spacing:1px; margin-bottom:8px; }
+  .jie-row { display:flex; justify-content:space-between; font-size:14px; color:#c9b998; margin:5px 0; }
+  .jie-row b { color:#e8dcc8; font-weight:600; }
+  .jie-verdict { font-size:17px; font-weight:600; margin:10px 0 4px; }
+  .jie-verdict.good { color:#7bc47b; }
+  .jie-verdict.bad { color:#e8663a; }
+  .jie-verdict.mid { color:#d9b779; }
+  .jie-lx { font-size:11px; color:#8a7a5f; margin:-1px 0 7px; line-height:1.5; }
+  .jie-desc { font-size:12px; color:#8a7a5f; }
+  .disclaim { font-size:11px; color:#6b5d47; line-height:1.7; margin-top:8px; padding:0 4px; }
+  .copybtn { display:block; width:100%; margin:2px 0 12px; background:#243a24; border:1px solid #3f5a3f; color:#9bd49b; padding:11px; border-radius:12px; font-size:14px; cursor:pointer; }
+  .copybtn:active { background:#1c2e1c; }
+
+  .numcast { display:flex; gap:8px; margin-top:14px; justify-content:center; }
+  .numcast input { background:#241d14; border:1px solid #3a2f22; color:#e8dcc8; padding:8px 12px; border-radius:16px; font-size:14px; width:170px; text-align:center; }
+  .numcast button { background:#3a2f22; border:1px solid #4a3f2e; color:#d9b779; padding:8px 16px; border-radius:16px; font-size:14px; cursor:pointer; white-space:nowrap; }
+  .reset {
+    margin-top:14px; background:none; border:1px solid #4a3f2e; color:#a89a7d;
+    padding:9px 26px; border-radius:20px; font-size:14px; cursor:pointer;
+  }
+  .reset:active { background:#241d14; }
+  .hint { font-size:11px; color:#6b5d47; margin-top:16px; text-align:center; line-height:1.7; max-width:360px; }
+</style>
+</head>
+<body>
+  <h1>梅 花 易 数</h1>
+  <div class="sub">点 9 下 · 前 6 下起本卦 · 后 3 下定动爻</div>
+  <div class="progress" id="progress">第 0 / 9 下</div>
+  <div class="types" id="types"></div>
+
+  <div class="building" id="building"></div>
+  <button class="tap" id="tapBtn">点</button>
+  <div class="numcast">
+    <input id="numInput" type="text" inputmode="numeric" placeholder="或报数:如 3 7(或 3 7 5)">
+    <button id="numBtn">报数起卦</button>
+  </div>
+  <div class="result" id="result"></div>
+  <button class="reset" id="resetBtn">重来</button>
+  <div class="hint">本卦=现状 · 互卦=过程 · 变卦=结果<br>红线为动爻(会翻转成变卦)</div>
+
+<script>
+  // 八卦:key = 初中上(自下而上)
+  const TRI = {'111':'乾','110':'兑','101':'离','100':'震','011':'巽','010':'坎','001':'艮','000':'坤'};
+  const SYM = {'乾':'☰','兑':'☱','离':'☲','震':'☳','巽':'☴','坎':'☵','艮':'☶','坤':'☷'};
+  const NAT = {'乾':'天','兑':'泽','离':'火','震':'雷','巽':'风','坎':'水','艮':'山','坤':'地'};
+  // 64卦:key = 上卦名+下卦名
+  const GUA64 = {
+    '乾乾':'乾为天','坤坤':'坤为地','坎震':'水雷屯','艮坎':'山水蒙','坎乾':'水天需','乾坎':'天水讼',
+    '坤坎':'地水师','坎坤':'水地比','巽乾':'风天小畜','乾兑':'天泽履','坤乾':'地天泰','乾坤':'天地否',
+    '乾离':'天火同人','离乾':'火天大有','坤艮':'地山谦','震坤':'雷地豫','兑震':'泽雷随','艮巽':'山风蛊',
+    '坤兑':'地泽临','巽坤':'风地观','离震':'火雷噬嗑','艮离':'山火贲','艮坤':'山地剥','坤震':'地雷复',
+    '乾震':'天雷无妄','艮乾':'山天大畜','艮震':'山雷颐','兑巽':'泽风大过','坎坎':'坎为水','离离':'离为火',
+    '兑艮':'泽山咸','震巽':'雷风恒','乾艮':'天山遁','震乾':'雷天大壮','离坤':'火地晋','坤离':'地火明夷',
+    '巽离':'风火家人','离兑':'火泽睽','坎艮':'水山蹇','震坎':'雷水解','艮兑':'山泽损','巽震':'风雷益',
+    '兑乾':'泽天夬','乾巽':'天风姤','兑坤':'泽地萃','坤巽':'地风升','兑坎':'泽水困','坎巽':'水风井',
+    '兑离':'泽火革','离巽':'火风鼎','震震':'震为雷','艮艮':'艮为山','巽艮':'风山渐','震兑':'雷泽归妹',
+    '震离':'雷火丰','离艮':'火山旅','巽巽':'巽为风','兑兑':'兑为泽','巽坎':'风水涣','坎兑':'水泽节',
+    '巽兑':'风泽中孚','震艮':'雷山小过','坎离':'水火既济','离坎':'火水未济'
+  };
+  // 八卦五行
+  const WX = {'乾':'金','兑':'金','震':'木','巽':'木','坤':'土','艮':'土','离':'火','坎':'水'};
+  const SHENG = {'金':'水','水':'木','木':'火','火':'土','土':'金'}; // 相生
+  const KE    = {'金':'木','木':'土','土':'水','水':'火','火':'金'}; // 相克
+  // 八卦类象(一象多意,不止五行)
+  const LEIXIANG = {
+    '乾':'天·父·君王/领导·头·老人·刚强',
+    '坤':'地·母·大众·肚腹·柔顺·布帛',
+    '震':'雷·长男·脚足·震动·急躁·大道',
+    '巽':'风/木·长女·大腿·进退·柔和·绳直',
+    '坎':'水·中男·耳朵·险陷·隐伏·盗贼',
+    '离':'火·中女·眼目·光明·文书·美丽',
+    '艮':'山·少男·手·停止·稳固·门径',
+    '兑':'泽·少女·口舌·喜悦·饮食·毁折'
+  };
+  function relation(u, t) { // u=用五行, t=体五行(体喜生、忌克)
+    if (u===t) return {t:'比和', j:'🟢 吉', d:'用与体同五行,比和相助', c:'good'};
+    if (SHENG[u]===t) return {t:'用生体', j:'🟢 吉', d:'用来生体,得生助,顺', c:'good'};
+    if (KE[u]===t) return {t:'用克体', j:'🔴 凶', d:'用克体,受阻,不利', c:'bad'};
+    if (SHENG[t]===u) return {t:'体生用', j:'🟡 耗', d:'体去生用,耗损气力,偏不利', c:'mid'};
+    if (KE[t]===u) return {t:'体克用', j:'🟡 小吉', d:'体克用,能成但费力', c:'mid'};
+    return {t:'',j:'',d:'',c:''};
+  }
+  // 时辰数:子1丑2…亥12(按当前时间)
+  function shichenNum() { const h = new Date().getHours(); return Math.floor(((h + 1) % 24) / 2) + 1; }
+  // 当令五行(阳历月:春木夏火秋金冬水)
+  function dangLing() { const m = new Date().getMonth()+1; if ([2,3,4].indexOf(m)>=0) return '木'; if ([5,6,7].indexOf(m)>=0) return '火'; if ([8,9,10].indexOf(m)>=0) return '金'; return '水'; }
+  // 五行旺衰:当令旺,令生相,生令休,克令囚,令克死
+  function wangShuai(wx, ling) {
+    if (wx===ling) return '旺';
+    if (SHENG[ling]===wx) return '相';
+    if (SHENG[wx]===ling) return '休';
+    if (KE[wx]===ling) return '囚';
+    return '死';
+  }
+  function wangShuaiHTML(体名) {
+    const ling = dangLing();
+    const s = wangShuai(WX[体名], ling);
+    const 季 = {'木':'春','火':'夏','金':'秋','水':'冬'}[ling];
+    const 有力 = (s==='旺' || s==='相');
+    const 影响 = 有力 ? '体有力,吉更稳、被克也不至大凶' : '体偏弱,吉助力有限、凶更需谨慎';
+    return `<div class="jie-lx">🗓 当令 ${季}季${ling}旺 · 体卦${体名}(${WX[体名]})现【${s}】—— ${影响}</div>`;
+  }
+  // 64卦一句话卦意(简要,供参考)
+  const GUAYI = {
+    '乾为天':'刚健自强,大吉但须守正','坤为地':'柔顺厚载,宜守不宜先','水雷屯':'初生艰难,宜守待时','山水蒙':'蒙昧待启,需引导学习',
+    '水天需':'等待时机,不宜妄进','天水讼':'争讼冲突,宜和不宜争','地水师':'兴众用兵,需纪律守正','水地比':'亲比团结,宜亲附贤者',
+    '风天小畜':'小有积蓄,力尚不足,暂缓','天泽履':'循礼谨行,如履薄冰','地天泰':'通泰和顺,大吉','天地否':'闭塞不通,凶,宜守',
+    '天火同人':'与人同心,利合作','火天大有':'大有收获,富足吉','地山谦':'谦虚,吉,谦受益','雷地豫':'和乐顺动,宜行',
+    '泽雷随':'随顺跟随,宜顺势','山风蛊':'弊乱待治,需革除积弊','地泽临':'临近渐进,向好','风地观':'观望审视,宜多观察',
+    '火雷噬嗑':'咬合除障,需刚断','山火贲':'文饰装点,重外表','山地剥':'剥落衰退,凶,宜守','地雷复':'一阳复生,转机渐好',
+    '天雷无妄':'不虚妄,守正则吉','山天大畜':'厚积待发,吉','山雷颐':'颐养饮食,宜养正','泽风大过':'过甚非常,有险须慎',
+    '坎为水':'重险坎陷,凶险宜慎','离为火':'附丽光明,宜守正','泽山咸':'感应交感,吉','雷风恒':'恒久持守,吉',
+    '天山遁':'退避隐遁,宜退不宜进','雷天大壮':'强盛壮大,吉但戒躁','火地晋':'上进晋升,吉','地火明夷':'光明受伤,宜韬晦守',
+    '风火家人':'家庭内治,宜守家','火泽睽':'乖离背违,不合须慎','水山蹇':'艰难险阻,行路难宜止','雷水解':'困难解除,吉',
+    '山泽损':'减损,先损后益','风雷益':'增益,吉','泽天夬':'决断决裂,宜果决','天风姤':'不期而遇,女壮须防',
+    '泽地萃':'荟萃聚合,吉','地风升':'渐进上升,吉','泽水困':'困顿穷困,凶,守待时','水风井':'井养恒常,养人不穷',
+    '泽火革':'变革除旧,宜改','火风鼎':'鼎新稳重,吉','震为雷':'震动惊惧,动而后安','艮为山':'静止,宜止则止',
+    '风山渐':'循序渐进,吉','雷泽归妹':'非正之合,须守正防不当','雷火丰':'丰盛盛大,吉但盛极将衰','火山旅':'行旅漂泊,宜谨慎',
+    '巽为风':'顺入谦逊,宜顺','兑为泽':'和悦喜悦,吉','风水涣':'涣散离散,宜聚散有度','水泽节':'节制有度则吉',
+    '风泽中孚':'诚信,以诚感人吉','雷山小过':'小有过越,宜小不宜大','水火既济':'事已成,吉但防盛极生变','火水未济':'事未竟,需继续努力'
+  };
+  // 大白话 + 生活比喻(给新手)
+  const BAIHUA = {
+    '乾为天':'像老板/领导,劲头足,大吉但别太刚','坤为地':'像大地/老妈,包容承载,宜跟随别抢头',
+    '水雷屯':'像刚发芽,起步乱又难,稳住别急','山水蒙':'像小孩没开窍,懵懂,需要学/教',
+    '水天需':'像等饭吃,时机没到,耐心等别冲','天水讼':'像吵架/打官司,有争执,宜和解',
+    '地水师':'像带兵打仗,要纪律、要正当','水地比':'像大家抱团,亲近团结,靠拢好人',
+    '风天小畜':'像只攒了一点,力气还小,先缓缓','天泽履':'像踩着老虎尾巴走,处处小心',
+    '地天泰':'像天地相融,通顺和气,大好','天地否':'像堵住不通,闭塞,先守别动',
+    '天火同人':'像一伙人同心,合作聚人','火天大有':'像大丰收,富足有收获',
+    '地山谦':'像山藏地下,谦虚,越谦越好','雷地豫':'像敲锣打鼓,欢快顺畅,可行动',
+    '泽雷随':'像顺水推舟,跟着走、顺势','山风蛊':'像东西烂了要收拾,清理积弊',
+    '地泽临':'像慢慢靠近,渐渐向好','风地观':'像站高处看,先观察别急动',
+    '火雷噬嗑':'像咬硬东西,果断除障碍','山火贲':'像化妆打扮,重外表装饰',
+    '山地剥':'像墙皮剥落,衰败,先守着','地雷复':'像春天回来,转机来了',
+    '天雷无妄':'像老实别乱来,守规矩就好','山天大畜':'像仓库囤满,厚积待发',
+    '山雷颐':'像张嘴吃饭,养身、慎言慎食','泽风大过':'像担子太重压弯,过头了有险',
+    '坎为水':'像掉进水坑,重重危险,谨慎','离为火':'像火/太阳,光明,靠依附才旺',
+    '泽山咸':'像男女来电,互相感应,吉','雷风恒':'像坚持不懈,长久稳定,吉',
+    '天山遁':'像躲起来隐退,宜退别进','雷天大壮':'像力气很猛,强盛但别莽',
+    '火地晋':'像太阳升起,往上走,吉','地火明夷':'像太阳落山被埋,受伤先藏',
+    '风火家人':'像一家人过日子,管好家里','火泽睽':'像两人闹别扭,不合、别扭要小心',
+    '水山蹇':'像跛脚走山路,艰难,宜停','雷水解':'像冰雪融化,困难解开,吉',
+    '山泽损':'像先花钱后受益,先损后得','风雷益':'像天降好处,增益,吉',
+    '泽天夬':'像下决心一刀切,果断决断','天风姤':'像意外碰上,有变数要防',
+    '泽地萃':'像人聚一堆,聚合,吉','地风升':'像小苗往上长,渐渐上升,吉',
+    '泽水困':'像被困住,穷困,守着等时机','水风井':'像一口井,能养人但慢、原地,靠自己打水',
+    '泽火革':'像换新的,变革除旧,该改就改','火风鼎':'像稳稳三足鼎,稳重、除旧立新,吉',
+    '震为雷':'像打雷吓一跳,震动、惊,动过就安','艮为山':'像山一样不动,该停就停',
+    '风山渐':'像一步步来,循序渐进,吉','雷泽归妹':'像不太正当的婚事,守规矩防出格',
+    '雷火丰':'像最盛的丰收,盛大但防盛极转衰','火山旅':'像出门在外漂泊,要谨慎',
+    '巽为风':'像风到处钻,柔顺、能进能退','兑为泽':'像开心说笑,喜悦,吉',
+    '风水涣':'像水被冲散,涣散分开,聚散有度','水泽节':'像有节制,节省有度就吉',
+    '风泽中孚':'像心里有诚信,以诚待人吉','雷山小过':'像小小越了点线,做小事可以',
+    '水火既济':'像事已办成,吉但别得意翻车','火水未济':'像事还没成,继续努力'
+  };
+  // 天气类象 / 方位
+  const TIANQI = {'乾':'晴/天','坤':'阴/云','震':'雷/雷雨','巽':'风','坎':'雨/雪','离':'晴/日','艮':'云雾/转变','兑':'阴/小雨'};
+  const FANGWEI = {'乾':'西北','兑':'西','离':'南','震':'东','巽':'东南','坎':'北','艮':'东北','坤':'西南'};
+  // 问题类型:决定看哪套象
+  const TYPES = {
+    '谋事':{mode:'生克', tip:'看体用生克+本互变走势。用生体/比和→顺,用克体→受阻。'},
+    '求财':{mode:'生克', tip:'体=你,用=财。用生体/比和→得财,体克用→可得但费力,用克体→难得。'},
+    '姻缘':{mode:'感情', tip:'体=你,用=对方/感情。用生体/比和→合得来能成,用克体→对方压你,体生用→你付出多。合卦:咸恒既济泰;离卦:睽否剥。'},
+    '事业':{mode:'生克', tip:'体=你,用=工作/事业。用生体/比和→顺、能得,用克体→受阻;离(文书)、乾(权位)为佳。'},
+    '考试':{mode:'生克', tip:'体=考生,用=考试/功名。用生体/比和→顺利,用克体→较难;离(文书)旺利考。'},
+    '出行':{mode:'生克', tip:'体=出行人,用=行程。用生体/比和→顺利平安,用克体→有阻;坎(险)、震(动荡)宜谨慎。'},
+    '官司':{mode:'生克', tip:'体=你,用=对方/官非。用克体→不利,体克用→占上风但费力,比和/用生体→易和解。'},
+    '疾病':{mode:'生克', tip:'体=病人,用=病。用生体→病轻/好转,用克体→较重需谨慎。⚠️健康以就医为准,卦仅参考。'},
+    '天气':{mode:'天气', tip:'看卦里自然象:坎=雨、乾离=晴、震=雷、巽=风、坤=阴、兑=小雨、艮=云雾转变。'},
+    '失物':{mode:'方位', tip:'用卦=失物,其方位=物可能所在方向,类象=物的特征。'},
+    '寻人':{mode:'方位', tip:'用卦=所寻之人,方位=可能方向,类象=人的特征(乾=老人/男、兑=少女、坎=中男…)。'}
+  };
+  let qType = '谋事';
+
+  let taps = []; // 每下 0/1
+  let lastPrompt = '';
+
+  const $ = id => document.getElementById(id);
+
+  function triName(b) { return TRI[b.join('')]; }
+  // 六爻 bits: index0=初爻(下), index5=上爻(顶)
+  function guaName(bits) {
+    const lower = triName(bits.slice(0,3));   // 下卦=初二三爻
+    const upper = triName(bits.slice(3,6));   // 上卦=四五六爻
+    return { name: GUA64[upper+lower], upper, lower };
+  }
+  function hexHTML(bits, moving) { // bits:0/1/-1(空); moving:1-6 或 0
+    let h = '<div class="hex">';
+    for (let i=5; i>=0; i--) {   // 上爻→初爻,自上而下画
+      const v = bits[i];
+      if (v === -1) { h += '<div class="yao empty"><div class="bar"></div></div>'; continue; }
+      const yang = v===1;
+      const mv = moving && (i+1)===moving ? ' moving' : '';
+      h += `<div class="yao ${yang?'yang':'yin'}${mv}">`;
+      h += yang ? '<div class="bar"></div>' : '<div class="bar"></div><div class="bar"></div>';
+      h += '</div>';
+    }
+    return h + '</div>';
+  }
+  function card(role, bits, moving) {
+    const g = guaName(bits);
+    return `<div class="card ${role.indexOf('本卦')===0?'ben':''}">
+      ${hexHTML(bits, moving)}
+      <div class="card-info">
+        <div class="role">${role}</div>
+        <div class="gname">${g.name}</div>
+        <div class="tri">上 ${g.upper}${SYM[g.upper]}·${NAT[g.upper]}(${WX[g.upper]})　下 ${g.lower}${SYM[g.lower]}·${NAT[g.lower]}(${WX[g.lower]})</div>
+        <div class="baihua">💬 ${BAIHUA[g.name]||''}</div>
+        <div class="yi">${GUAYI[g.name]||''}</div>
+      </div></div>`;
+  }
+  function analysisHTML(qt, d) {
+    const cfg = TYPES[qt];
+    let inner = '';
+    if (cfg.mode === '生克') {
+      const 体标签 = qt==='疾病' ? '体卦(病人)' : '体卦(你自己)';
+      inner =
+        `<div class="jie-row"><span>${体标签}</span><b>${d.体位} ${d.体名}${SYM[d.体名]} · ${WX[d.体名]}</b></div>` +
+        `<div class="jie-lx">${d.体名}的类象:${LEIXIANG[d.体名]}</div>` +
+        `<div class="jie-row"><span>用卦(所问)</span><b>${d.用位} ${d.用名}${SYM[d.用名]} · ${WX[d.用名]}</b></div>` +
+        `<div class="jie-lx">${d.用名}的类象:${LEIXIANG[d.用名]}</div>` +
+        `<div class="jie-verdict ${d.rel.c}">${d.rel.t} → ${d.rel.j}</div>` +
+        `<div class="jie-desc">${d.rel.d}</div>` +
+        wangShuaiHTML(d.体名);
+    } else if (cfg.mode === '感情') {
+      const 合 = ['泽山咸','雷风恒','水火既济','地天泰','风泽中孚','风火家人'];
+      const 离 = ['火泽睽','天地否','山地剥','水山蹇','泽风大过','雷泽归妹'];
+      const jg = GUA64[triName(d.bianBits.slice(3,6))+triName(d.bianBits.slice(0,3))];
+      let hl;
+      if (合.indexOf(jg) >= 0) hl = `<div class="jie-verdict good">结果卦「${jg}」偏"合" → 利在一起</div>`;
+      else if (离.indexOf(jg) >= 0) hl = `<div class="jie-verdict bad">结果卦「${jg}」偏"离" → 悬,须用心经营</div>`;
+      else hl = `<div class="jie-lx">结果卦「${jg}」非明显合/离,结合卦意自己判断</div>`;
+      inner =
+        `<div class="jie-row"><span>体卦(你自己)</span><b>${d.体位} ${d.体名}${SYM[d.体名]} · ${WX[d.体名]}</b></div>` +
+        `<div class="jie-lx">${d.体名}的类象:${LEIXIANG[d.体名]}</div>` +
+        `<div class="jie-row"><span>用卦(对方/感情)</span><b>${d.用位} ${d.用名}${SYM[d.用名]} · ${WX[d.用名]}</b></div>` +
+        `<div class="jie-lx">${d.用名}的类象:${LEIXIANG[d.用名]}</div>` +
+        `<div class="jie-verdict ${d.rel.c}">${d.rel.t} → ${d.rel.j}</div>` +
+        `<div class="jie-desc">${d.rel.d}</div>` + wangShuaiHTML(d.体名) + hl;
+    } else if (cfg.mode === '天气') {
+      const rows = [['本卦(现状)',d.benBits],['互卦(过程)',d.huBits],['变卦(结果)',d.bianBits]].map(function(x){
+        const b=x[1], t1=triName(b.slice(0,3)), t2=triName(b.slice(3,6));
+        return `<div class="jie-row"><span>${x[0]}</span><b>上${t2}=${TIANQI[t2]}　下${t1}=${TIANQI[t1]}</b></div>`;
+      }).join('');
+      const all = [triName(d.benBits.slice(0,3)),triName(d.benBits.slice(3,6)),triName(d.bianBits.slice(0,3)),triName(d.bianBits.slice(3,6))];
+      let sum;
+      if (all.indexOf('坎')>=0) sum='卦中有坎(水/雨)→ 偏有雨';
+      else if (all.indexOf('震')>=0) sum='卦中有震(雷)→ 可能雷阵雨';
+      else if (all.indexOf('兑')>=0 || all.indexOf('坤')>=0) sum='有兑/坤(阴)→ 多云转阴,或飘小雨';
+      else sum='多为乾离(晴/天)'+(all.indexOf('巽')>=0?'+巽(风)':'')+' → 以晴为主'+(all.indexOf('艮')>=0?',或有转变':'');
+      inner = rows + `<div class="jie-verdict good">综合(重现状+结果):${sum}</div>`;
+    } else if (cfg.mode === '方位') {
+      inner =
+        `<div class="jie-row"><span>失物(用卦)</span><b>${d.用名}${SYM[d.用名]} · ${WX[d.用名]}</b></div>` +
+        `<div class="jie-verdict good">可能方位:${FANGWEI[d.用名]}方</div>` +
+        `<div class="jie-lx">物的特征(类象):${LEIXIANG[d.用名]}</div>`;
+    }
+    return `<div class="jie"><div class="jie-title">解卦 · ${qt}</div>${inner}<div class="jie-desc" style="margin-top:8px;color:#7a6b52">${cfg.tip}</div></div>`;
+  }
+
+  function render() {
+    $('progress').textContent = '第 ' + taps.length + ' / 9 下';
+
+    // ---- 起卦中的本卦柱 ----
+    // 前3下=上卦(四五六爻), 中3下=下卦(初二三爻);第 i 下 → 本卦爻位置
+    const posMap = [3,4,5,0,1,2];
+    const partial = [-1,-1,-1,-1,-1,-1];
+    for (let i=0; i<Math.min(taps.length,6); i++) partial[posMap[i]] = taps[i];
+    let build = hexHTML(partial, 0);
+    // 动爻构建提示(第7-9下)
+    let dong = '';
+    if (taps.length >= 6) {
+      const dtaps = taps.slice(6,9);
+      dong = '<div class="dong-build">动爻:' + (dtaps.length? dtaps.join(' ') : '_ _ _') + '</div>';
+    }
+    $('building').innerHTML = build + dong;
+
+    // ---- 满9下:出结果 ----
+    if (taps.length >= 9) {
+      // 本卦:前3下=上卦, 中3下=下卦(自下而上排:下卦=初二三, 上卦=四五六)
+      const benBits = [ taps[3],taps[4],taps[5], taps[0],taps[1],taps[2] ];
+      const n = taps[6]*4 + taps[7]*2 + taps[8]; // 0-7
+      showResult(benBits, (n % 6) || 6);
+      $('tapBtn').disabled = true;
+    } else {
+      $('result').innerHTML = '';
+      $('tapBtn').disabled = false;
+    }
+  }
+
+  // 根据本卦六爻 + 动爻,渲染 本/互/变 三卦(点卦、报数共用)
+  function showResult(benBits, dongYao) {
+    const bianBits = benBits.slice();
+    bianBits[dongYao-1] = benBits[dongYao-1] ? 0 : 1; // 翻动爻
+    const huBits = [ benBits[1],benBits[2],benBits[3], benBits[2],benBits[3],benBits[4] ];
+    let 用bits, 体bits, 用位, 体位;
+    if (dongYao <= 3) { 用bits=benBits.slice(0,3); 体bits=benBits.slice(3,6); 用位='下卦'; 体位='上卦'; }
+    else              { 用bits=benBits.slice(3,6); 体bits=benBits.slice(0,3); 用位='上卦'; 体位='下卦'; }
+    const 用名=triName(用bits), 体名=triName(体bits);
+    const rel = relation(WX[用名], WX[体名]);
+    const jie = analysisHTML(qType, {benBits, huBits, bianBits, dong爻:dongYao, 用名, 体名, 用位, 体位, rel});
+    // 拼一段可复制的解卦提示词(粘到 DeepSeek/任意AI)
+    const g本 = guaName(benBits).name, g互 = guaName(huBits).name, g变 = guaName(bianBits).name;
+    const ling = dangLing(), ws = wangShuai(WX[体名], ling), 季 = {'木':'春','火':'夏','金':'秋','水':'冬'}[ling];
+    lastPrompt =
+      `我用梅花易数起了一卦,问的是【${qType}】。请用大白话,结合下面信息给我一段自然连贯的解读(300字内,像聊天别罗列),最后给一句建议。\n\n` +
+      `体用生克:体卦${体名}(我自己)、用卦${用名}(所问) —— ${rel.t},${rel.j}(${rel.d})。\n` +
+      `当令旺衰:${季}季${ling}旺,体卦${体名}现【${ws}】。\n\n` +
+      `本卦(现状):${g本} —— ${BAIHUA[g本]}\n` +
+      `互卦(过程):${g互} —— ${BAIHUA[g互]}\n` +
+      `变卦(结果):${g变} —— ${BAIHUA[g变]}\n` +
+      `动爻:第${dongYao}爻。\n\n` +
+      `请解读现状→过程→结果怎么走,对我这个【${qType}】问题意味着什么,给一段话+一句建议。`;
+    $('result').innerHTML =
+      `<div class="dong-info">动爻:第 ${dongYao} 爻</div>` + jie +
+      card('本卦(现状)', benBits, dongYao) +
+      card('互卦(过程)', huBits, 0) +
+      card('变卦(结果)', bianBits, 0) +
+      `<button class="copybtn" onclick="copyPrompt()">📋 复制解卦提示词 → 粘到 DeepSeek</button>` +
+      `<div class="disclaim">以上为初步倾向,仅供参考。真正断卦还要结合卦象象意、旺衰和所问之事——请顺着「本→互→变」三卦的卦意,自己综合判断。</div>`;
+  }
+  function copyPrompt() {
+    if (!lastPrompt) return;
+    const ta = document.createElement('textarea');
+    ta.value = lastPrompt;
+    ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    let ok=false; try { ok = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+    alert(ok ? '已复制!打开 DeepSeek 粘贴,让它帮你解读~' : '复制失败,请长按结果手动复制');
+  }
+
+  // 报数起卦:第1数=上卦,第2数=下卦(÷8取余,先天数),动爻=(两数和)÷6;若给3个数则第3数÷6定动爻
+  function castByNumbers(str) {
+    const nums = (str||'').split(/[^0-9]+/).filter(x=>x!=='').map(Number);
+    if (nums.length < 2) { alert('请输入2个数(上卦、下卦),或3个数(第3个定动爻)'); return; }
+    const 先天 = {1:'111',2:'110',3:'101',4:'100',5:'011',6:'010',7:'001',8:'000'};
+    const trig = x => { let r = x % 8; if (r===0) r=8; return 先天[r].split('').map(Number); };
+    const 上 = trig(nums[0]);
+    const 下 = trig(nums[1]);
+    const benBits = [下[0],下[1],下[2], 上[0],上[1],上[2]]; // 下卦=初二三,上卦=四五六
+    const dong = nums.length>=3 ? ((nums[2]%6)||6) : (((nums[0]+nums[1]+shichenNum())%6)||6); // 2数:加时辰
+    taps = [];
+    $('building').innerHTML = '';
+    $('progress').textContent = '报数起卦:' + nums.slice(0, nums.length>=3?3:2).join(' ');
+    $('tapBtn').disabled = true;
+    showResult(benBits, dong);
+  }
+  $('tapBtn').addEventListener('click', () => {
+    if (taps.length >= 9) return;
+    taps.push(Math.random() < 0.5 ? 0 : 1);
+    render();
+  });
+  $('numBtn').addEventListener('click', () => castByNumbers($('numInput').value));
+  $('resetBtn').addEventListener('click', () => { taps = []; $('numInput').value = ''; render(); });
+
+  function buildTypes() {
+    $('types').innerHTML = Object.keys(TYPES).map(t =>
+      `<button class="${t===qType?'on':''}" data-t="${t}">${t}</button>`).join('');
+    $('types').querySelectorAll('button').forEach(b =>
+      b.onclick = () => { qType = b.dataset.t; buildTypes(); render(); });
+  }
+  buildTypes();
+  render();
+</script>
+</body>
+</html>
