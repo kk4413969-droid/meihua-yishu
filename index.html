@@ -356,17 +356,28 @@
       const 合 = ['泽山咸','雷风恒','水火既济','地天泰','风泽中孚','风火家人'];
       const 离 = ['火泽睽','天地否','山地剥','水山蹇','泽风大过','雷泽归妹'];
       const jg = GUA64[triName(d.bianBits.slice(3,6))+triName(d.bianBits.slice(0,3))];
-      let hl;
-      if (合.indexOf(jg) >= 0) hl = `<div class="jie-verdict good">结果卦「${jg}」偏"合" → 利在一起</div>`;
-      else if (离.indexOf(jg) >= 0) hl = `<div class="jie-verdict bad">结果卦「${jg}」偏"离" → 悬,须用心经营</div>`;
-      else hl = `<div class="jie-lx">结果卦「${jg}」非明显合/离,结合卦意自己判断</div>`;
-      inner =
+      // 综合判"在一起/复合倾向":变卦合离 + 体用生克 各计一分
+      let score = 0; const 依据 = [];
+      if (合.indexOf(jg) >= 0) { score++; 依据.push(`结果卦「${jg}」偏合`); }
+      else if (离.indexOf(jg) >= 0) { score--; 依据.push(`结果卦「${jg}」偏离`); }
+      else 依据.push(`结果卦「${jg}」中性`);
+      if (d.rel.c === 'good') { score++; 依据.push('体用相生/比和'); }
+      else if (d.rel.c === 'bad') { score--; 依据.push('用克体受阻'); }
+      else 依据.push('体用小吉/耗损');
+      let 结论, cls;
+      if (score >= 1)      { 结论 = '偏有望 —— 有戏,顺势用心经营'; cls = 'good'; }
+      else if (score <= -1){ 结论 = '偏悬 —— 阻力大,须很用心,或考虑放下'; cls = 'bad'; }
+      else                 { 结论 = '五五开 —— 没定数,看你怎么经营和取舍'; cls = 'mid'; }
+      const hl =
+        `<div class="jie-verdict ${cls}">💞 在一起/复合倾向:${结论}</div>` +
+        `<div class="jie-lx">依据:${依据.join(' + ')}</div>`;
+      inner = hl +
         `<div class="jie-row"><span>体卦(你自己)</span><b>${d.体位} ${d.体名}${SYM[d.体名]} · ${WX[d.体名]}</b></div>` +
         `<div class="jie-lx">${d.体名}的类象:${LEIXIANG[d.体名]}</div>` +
         `<div class="jie-row"><span>用卦(对方/感情)</span><b>${d.用位} ${d.用名}${SYM[d.用名]} · ${WX[d.用名]}</b></div>` +
         `<div class="jie-lx">${d.用名}的类象:${LEIXIANG[d.用名]}</div>` +
         `<div class="jie-verdict ${d.rel.c}">${d.rel.t} → ${d.rel.j}</div>` +
-        `<div class="jie-desc">${d.rel.d}</div>` + wangShuaiHTML(d.体名) + hl;
+        `<div class="jie-desc">${d.rel.d}</div>` + wangShuaiHTML(d.体名);
     } else if (cfg.mode === '天气') {
       const rows = [['本卦(现状)',d.benBits],['互卦(过程)',d.huBits],['变卦(结果)',d.bianBits]].map(function(x){
         const b=x[1], t1=triName(b.slice(0,3)), t2=triName(b.slice(3,6));
